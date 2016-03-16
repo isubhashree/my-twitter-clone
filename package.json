@@ -1,0 +1,26 @@
+{
+  "name": "my-twitter-clone",
+  "version": "1.0.0",
+  "description": "twitter clone using meteor js",
+  "main": "my-twitter-clone.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "engine":{
+      "node":"0.10.40"
+      },
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/isubhashree/my-twitter-clone.git"
+        },
+        "keywords": [
+        "Meteor",
+        "Twitter"
+        ],
+        "author": "Subhashree Patra",
+        "license": "ISC",
+        "bugs": {
+          "url": "https://github.com/isubhashree/my-twitter-clone/issues"
+          },
+          "homepage": "https://github.com/isubhashree/my-twitter-clone#readme"
+        }
