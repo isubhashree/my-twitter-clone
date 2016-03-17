@@ -3,32 +3,38 @@ Relationships = new Meteor.Collection("relationShips");
 
 if (Meteor.isClient) {
 
-  Template.body.onRendered(function(){
-    console.log(Session.get('iscurrentUser'));
-    Session.get('iscurrentUser');
+	var AmplifiedSession = _.extend({}, Session, {
+    keys: _.object(_.map(amplify.store(), function (value, key) {
+      return [key, JSON.stringify(value)];
+    })),
+    set: function (key, value) {
+      Session.set.apply(this, arguments);
+      amplify.store(key, value);
+    }
   });
 
   Template.body.helpers({
     'iscurrentUser':function(){
-      return Session.get('iscurrentUser');
+    	console.log(AmplifiedSession.get('iscurrentUser'));
+      return AmplifiedSession.get('iscurrentUser');
     }
   });
 
   /*===============================================tweetBox Template START====================================================*/
   Template.tweetBox.onRendered(function () {
-    Session.set('numChars', 0);
+    AmplifiedSession.set('numChars', 0);
   });
 
   Template.tweetBox.events({
     'input #tweetText': function(){
-      Session.set('numChars', $('#tweetText').val().length);
+      AmplifiedSession.set('numChars', $('#tweetText').val().length);
     },
 
     'click button':function(){
       var tweet = $('#tweetText').val();
-      var currentUser = Session.get('iscurrentUser');
+      var currentUser = AmplifiedSession.get('iscurrentUser');
       $('#tweetText').val("");
-      Session.set('numChars',0);
+      AmplifiedSession.set('numChars',0);
       if(currentUser != undefined || currentUser != null){
         Meteor.call('insertTweet', tweet, currentUser);
       }
@@ -37,11 +43,11 @@ if (Meteor.isClient) {
 
   Template.tweetBox.helpers({
     charCount: function() {
-      return 140 - Session.get('numChars');
+      return 140 - AmplifiedSession.get('numChars');
     },
 
     charClass: function() {
-      if (Session.get('numChars') > 140) {
+      if (AmplifiedSession.get('numChars') > 140) {
         return 'errCharCount';   
       } else {
         return 'charCount';       
@@ -49,23 +55,23 @@ if (Meteor.isClient) {
     },
 
     disableButton: function() {
-      var currentUser = Session.get('iscurrentUser');
+      var currentUser = AmplifiedSession.get('iscurrentUser');
       console.log(currentUser);
-      if (Session.get('numChars') <= 0 ||
-        Session.get('numChars') > 140 || (currentUser == undefined)){
+      if (AmplifiedSession.get('numChars') <= 0 ||
+        AmplifiedSession.get('numChars') > 140 || (currentUser == undefined)){
         return 'disabled';
     }
   },
 
   'iscurrentUser':function(){
-    return Session.get('iscurrentUser');
+    return AmplifiedSession.get('iscurrentUser');
   }
 });
 
   /*===============================================tweetBox Template END====================================================*/
   /*===============================================userManagement Template START============================================*/
   Template.userManagement.events({
-    'submit #newUserForm': function() {
+    'click #signup': function() {
       var user = {
         username: $('#signup-username').val(),
         password: $('#signup-password').val(),
@@ -81,59 +87,55 @@ if (Meteor.isClient) {
       Meteor.call('findUser',user.username, function(error, response){
         if (response){
           console.log(response);
-          Session.set('iscurrentUser', response);
-          console.log(Session.get('iscurrentUser'));
+          AmplifiedSession.set('iscurrentUser', response);
+          console.log(AmplifiedSession.get('iscurrentUser'));
         }
       });
-      console.log(Session.get('iscurrentUser'));
-
       return false;
     },
 
-    'submit #existingUserForm': function() {
+    'click #login': function() {
       var username = $('#login-username').val();
       var password = $('#login-password').val();
-
-      console.log(username, password);
 
       Meteor.call('findUser',username, function(error, response){
         if (response){
           console.log(response);
-          Session.set('iscurrentUser', response);
-          console.log(Session.get('iscurrentUser'));
+          AmplifiedSession.set('iscurrentUser', response);
+          console.log(AmplifiedSession.get('iscurrentUser'));
         }
       });
       return false;
     },
 
     'click #logout': function() {
-      console.log(Session.get('iscurrentUser'));
+      console.log(AmplifiedSession.get('iscurrentUser'));
       Meteor.logout(function(err){
-        Session.set('iscurrentUser', undefined);
+        AmplifiedSession.set('iscurrentUser', null);
       });
     }
   });
 
   Template.userManagement.helpers({  
     'iscurrentUser':function(){
-      return Session.get('iscurrentUser');
+      return AmplifiedSession.get('iscurrentUser');
     },
     'tweets': function() {
-      var currentUser = Session.get('iscurrentUser');
+      var currentUser = AmplifiedSession.get('iscurrentUser');
       if (currentUser != undefined || currentUser != null) {
         return Tweets.find({ user: currentUser.username }).count();
       }
     },
 
     'following': function() {
-      var currentUser = Session.get('iscurrentUser');
+      var currentUser = AmplifiedSession.get('iscurrentUser');
       if (currentUser != undefined|| currentUser != null) {
         return Relationships.find({ follower: currentUser.username }).count();
       }
     },
 
     'followers': function() {
-      var currentUser = Session.get('iscurrentUser');
+      var currentUser = AmplifiedSession.get('iscurrentUser');
       if (currentUser != undefined || currentUser != null) {
         return Relationships.find({ following: currentUser.username }).count();
       }
@@ -142,9 +144,7 @@ if (Meteor.isClient) {
   /*===============================================userManagement Template END==================================================*/
   /*===============================================followUser Template START====================================================*/
   Template.followUsers.onRendered(function(){
-    Meteor.call('recommendUsers', Session.get('iscurrentUser'), function(error, response){
-      Session.set('recommendedUsers', response);
-    });
+  	AmplifiedSession.set('foundUser',null);
   });
 
   Template.followUsers.events({
@@ -152,44 +152,64 @@ if (Meteor.isClient) {
     var searchUser = event.target.searchUser.value;
 
     var foundUser = Meteor.call('findUser', searchUser, function(err, res) {
-      if (res) Session.set('foundUser', res);
+      if (res) AmplifiedSession.set('foundUser', res);
     });
     return false;
   },
 
   'click #follow': function() {
-    Meteor.call('followUser', Session.get('iscurrentUser'), Session.get('foundUser').username);
+    Meteor.call('followUser', AmplifiedSession.get('iscurrentUser'), AmplifiedSession.get('foundUser').username);
+    AmplifiedSession.set('foundUser', null);
   },
 
   'click #followRec': function(event) {
-    Meteor.call('followUser',Session.get('iscurrentUser'), this.username);
-    $(this).val("");
+    Meteor.call('followUser',AmplifiedSession.get('iscurrentUser'), this.username);
   }
 });
 
   Template.followUsers.helpers({
     'foundUser':function(){
-      return Session.get('foundUser');
+      return AmplifiedSession.get('foundUser');
     },
 
     'recommendedUsers': function() {
-      return Session.get('recommendedUsers');
-    }
+    	var username = AmplifiedSession.get('iscurrentUser').username;
+    	var currentFollowings = Relationships.find({
+        follower: username
+      }).fetch().map(function(data) {
+        return data.following;
+      });
+      currentFollowings.push(username);
+
+      var recUsers = Meteor.users.find({
+        username: {
+          $nin: currentFollowings
+        }
+      }, {
+        fields: { 'username': 1 },
+        limit: 5
+      }).fetch();
+
+      return recUsers;
+  }
+      //return AmplifiedSession.get('recommendedUsers');
+    
   });
 
   Template.followUsers.onCreated(function() {
-   var currentUser = Session.get('iscurrentUser');
+   var currentUser = AmplifiedSession.get('iscurrentUser');
    if (currentUser != undefined || currentUser != null){
     this.subscribe('following', currentUser.username);
     this.subscribe('followers', currentUser.username);
     this.subscribe('tweets', currentUser.username);
+    this.subscribe('recommendedUsers', currentUser.username);
   }
 });
 
   /*===============================================followUser Template END====================================================*/
 
   Template.tweetFeed.onCreated(function() {
-    var currentUser = Session.get('iscurrentUser');
+    var currentUser = AmplifiedSession.get('iscurrentUser');
     if (currentUser != undefined || currentUser != null) {
       this.subscribe('tweets', currentUser.username);
       this.subscribe('ownTweets', currentUser.username);
@@ -212,13 +232,6 @@ if (Meteor.isServer) {
   });
 
   Meteor.methods({
-    'showUser':function(){
-      return Meteor.users.find({sort: {
-        createdAt: -1}, 
-        limit: 1
-      });
-    },
-
     'findUser': function(username) {
       return Meteor.users.findOne({
         username: username
@@ -240,26 +253,6 @@ if (Meteor.isServer) {
         user: currentUser.username,
         timestamp: new Date()
       });    
-    },
-
-    'recommendUsers': function(currentUser) {
-      var currentFollowings = Relationships.find({
-        follower: currentUser.username
-      }).fetch().map(function(data) {
-        return data.following;
-      });
-      currentFollowings.push(currentUser.username);
-
-      var recUsers = Meteor.users.find({
-        username: {
-          $nin: currentFollowings
-        }
-      }, {
-        fields: { 'username': 1 },
-        limit: 5
-      }).fetch();
-
-      return recUsers;
     }
   });
 
@@ -288,4 +281,19 @@ if (Meteor.isServer) {
     return Relationships.find({ following: username });
   });
 
+  Meteor.publish('recommendedUsers',function(username){
+  	 var currentFollowings = Relationships.find({
+        follower: username
+      }).fetch().map(function(data) {
+        return data.following;
+      });
+      currentFollowings.push(username);
+
+      var recUsers = Meteor.users.find({
+        username: {
+          $nin: currentFollowings
+        }});
+
+      return recUsers;
+  });
 }

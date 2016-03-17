@@ -86,22 +86,22 @@
 			</div>
 			{{else}}      
 			<h4>Already have an account?</h4>
-			<form id="existingUserForm">
+			<div id="existingUserForm">
 				<input id="login-username" placeholder="Username">
 				<input id="login-password" placeholder="Password" type="password">
 				<div class="btnGroup">
 					<button type="submit" class="btn btn-info fullbutton login" id="login">Log in</button>
 				</div>
-			</form>
+			</div>
 			<h4>New User?</h4>
-			<form id="newUserForm">
+			<div id="newUserForm">
 				<div><input id="signup-username" placeholder="Username"></div>
 				<div><input id="signup-fullname" placeholder="Full Name (Optional)"></div>
 				<div><input id="signup-password" placeholder="Password" type="password"></div>
 				<div class="btnGroup">
 					<button type="submit" class="btn btn-info fullbutton" id="signup">Sign up</button>
 				</div>
-			</form>
+			</div>
 			{{/if}}
 		</div>
 	</div>
@@ -125,7 +125,7 @@
 				{{/if}}
 
 				<!-- List of people to follow -->
-				<div class="recommend-users">
+				<div class="recommend-users" id="recommend">
 					<h5>Who to follow:</h5>
 					{{#each recommendedUsers}}
 					<p><button type="button" class="btn btn-default" id="followRec">Follow @{{this.username}}</button></p>
